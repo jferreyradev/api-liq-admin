@@ -20,22 +20,22 @@
           <input 
             v-model="tempUrl" 
             type="text" 
-            placeholder="http://localhost:3005"
+            placeholder="https://api-rpi.liqsysonline.com"
             class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 font-mono focus:outline-none focus:border-indigo-500" 
           />
           <div class="flex items-center gap-2 mt-2">
             <span class="text-slate-500 text-[11px]">Accesos rápidos:</span>
             <button 
+              @click="tempUrl = 'https://api-rpi.liqsysonline.com'" 
+              class="px-2 py-0.5 rounded bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px]"
+            >
+              Raspberry Producción (api-rpi)
+            </button>
+            <button 
               @click="tempUrl = 'http://localhost:3005'" 
               class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]"
             >
               Localhost:3005
-            </button>
-            <button 
-              @click="tempUrl = 'http://192.168.1.100:3005'" 
-              class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]"
-            >
-              Raspberry Pi
             </button>
           </div>
         </div>

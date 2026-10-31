@@ -3,7 +3,7 @@
  */
 class ApiService {
   constructor() {
-    this.defaultBaseUrl = 'http://localhost:3005';
+    this.defaultBaseUrl = import.meta.env.VITE_API_URL || 'https://api-rpi.liqsysonline.com';
   }
 
   getBaseUrl() {
