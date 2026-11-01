@@ -79,8 +79,13 @@
           <!-- View Title -->
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
-              <span class="text-xs font-semibold text-indigo-400 font-mono">VISTA ACTIVA</span>
-              <h2 class="text-lg font-bold text-slate-100 font-mono">{{ selectedView }}</h2>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-indigo-400 font-mono">VISTA ACTIVA</span>
+                <span v-if="viewFieldsList.length" class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                  {{ viewFieldsList.length }} columnas
+                </span>
+              </div>
+              <h2 class="text-lg font-bold text-slate-100 font-mono mt-0.5">{{ selectedView }}</h2>
             </div>
             <div class="flex items-center gap-2">
               <button 
@@ -92,6 +97,17 @@
                 <span>{{ isLoadingData ? 'Consultando Oracle...' : 'Ejecutar Query' }}</span>
               </button>
             </div>
+          </div>
+
+          <!-- Mapped Fields Preview -->
+          <div v-if="viewFieldsList.length" class="flex flex-wrap gap-1.5 py-1">
+            <span 
+              v-for="col in viewFieldsList" 
+              :key="col" 
+              class="text-[10px] font-mono bg-slate-800/80 text-slate-300 border border-slate-700/60 px-2 py-0.5 rounded"
+            >
+              {{ col }}
+            </span>
           </div>
 
           <!-- Parameter Controls -->
@@ -213,6 +229,16 @@ const queryParams = ref({
 });
 
 const tableRows = ref([]);
+
+const selectedViewMeta = computed(() => {
+  if (!selectedView.value) return null;
+  return store.viewsMap[selectedView.value] || null;
+});
+
+const viewFieldsList = computed(() => {
+  if (!selectedViewMeta.value?.fields) return [];
+  return Object.keys(selectedViewMeta.value.fields);
+});
 
 const filteredViews = computed(() => {
   if (!searchQuery.value) return store.viewsList;

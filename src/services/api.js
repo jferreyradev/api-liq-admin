@@ -106,6 +106,13 @@ class ApiService {
     return this.request('/api/view/refresh', { method: 'POST' });
   }
 
+  async executeSql(sql, binds = {}, limit = 50) {
+    return this.request('/api/sql/execute', {
+      method: 'POST',
+      body: JSON.stringify({ sql, binds, limit })
+    });
+  }
+
   async importViewsJson(viewsObject) {
     return this.request('/api/view/import-json', {
       method: 'POST',

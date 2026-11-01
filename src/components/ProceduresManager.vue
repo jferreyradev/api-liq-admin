@@ -86,10 +86,15 @@
           <!-- Item Header -->
           <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
-              <span class="text-xs font-semibold text-indigo-400 font-mono uppercase">
-                {{ activeSubTab === 'sp' ? 'STORED PROCEDURE' : 'FUNCIÓN ORACLE' }}
-              </span>
-              <h2 class="text-lg font-bold text-slate-100 font-mono">{{ selectedItem }}</h2>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-indigo-400 font-mono uppercase">
+                  {{ activeSubTab === 'sp' ? 'STORED PROCEDURE' : 'FUNCIÓN ORACLE' }}
+                </span>
+                <span v-if="selectedItemMeta?.sp_name || selectedItemMeta?.fn_name" class="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                  {{ selectedItemMeta?.sp_name || selectedItemMeta?.fn_name }}
+                </span>
+              </div>
+              <h2 class="text-lg font-bold text-slate-100 font-mono mt-0.5">{{ selectedItem }}</h2>
             </div>
             <button 
               @click="executeCall" 
@@ -184,9 +189,18 @@ const currentList = computed(() => {
   return list.filter(item => item.toLowerCase().includes(q));
 });
 
-onMounted(() => {
-  store.fetchProcedures();
-  store.fetchFunctions();
+const selectedItemMeta = computed(() => {
+  if (!selectedItem.value) return null;
+  return activeSubTab.value === 'sp' 
+    ? store.proceduresMap[selectedItem.value] 
+    : store.functionsMap[selectedItem.value];
+});
+
+onMounted(async () => {
+  await Promise.allSettled([
+    store.fetchProcedures(),
+    store.fetchFunctions()
+  ]);
 });
 
 function selectItem(item) {
@@ -194,7 +208,26 @@ function selectItem(item) {
   executionResult.value = null;
   executionError.value = null;
   executionTime.value = null;
-  rawPayload.value = '{\n  \n}';
+
+  const meta = activeSubTab.value === 'sp' 
+    ? store.proceduresMap[item] 
+    : store.functionsMap[item];
+
+  if (meta?.in_param) {
+    if (Array.isArray(meta.in_param)) {
+      const sample = {};
+      meta.in_param.forEach(p => { sample[p] = ''; });
+      rawPayload.value = JSON.stringify(sample, null, 2);
+    } else if (typeof meta.in_param === 'object') {
+      const sample = {};
+      Object.keys(meta.in_param).forEach(k => { sample[k] = ''; });
+      rawPayload.value = JSON.stringify(sample, null, 2);
+    } else {
+      rawPayload.value = '{\n  \n}';
+    }
+  } else {
+    rawPayload.value = '{\n  \n}';
+  }
 }
 
 async function executeCall() {

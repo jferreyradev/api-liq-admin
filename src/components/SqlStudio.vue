@@ -4,9 +4,17 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-slate-100 tracking-tight">SQL Studio & Creador de Vistas</h1>
-        <p class="text-sm text-slate-400">Escribe consultas SELECT y conviértelas automáticamente en endpoints de la API con paginación 11g.</p>
+        <p class="text-sm text-slate-400">Escribe consultas SELECT, pruébalas en tiempo real contra Oracle y conviértelas en endpoints de la API.</p>
       </div>
       <div class="flex items-center gap-2">
+        <button 
+          @click="runQuery"
+          :disabled="isExecuting || !sqlText.trim()"
+          class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-semibold transition shadow-md shadow-emerald-600/20 disabled:opacity-50"
+        >
+          <Play class="w-4 h-4 fill-current" :class="{ 'animate-spin': isExecuting }" />
+          <span>{{ isExecuting ? 'Ejecutando en Oracle...' : 'Ejecutar Consulta' }}</span>
+        </button>
         <button 
           @click="openSaveModal"
           :disabled="!sqlText.trim()"
@@ -19,13 +27,29 @@
     </div>
 
     <!-- SQL Editor Area -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col h-[320px]">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col h-[280px]">
       <div class="bg-slate-950/80 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
           <Terminal class="w-4 h-4 text-indigo-400" />
           <span>Editor de Consulta Oracle (SELECT)</span>
+          <span class="text-[11px] text-slate-500 font-normal hidden sm:inline">(Cmd+Enter para ejecutar)</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
+          <!-- Limit selector -->
+          <div class="flex items-center gap-1.5 text-xs text-slate-400">
+            <span>Límite:</span>
+            <select 
+              v-model.number="queryLimit" 
+              class="bg-slate-900 border border-slate-700 text-slate-300 rounded px-2 py-0.5 text-xs focus:outline-none"
+            >
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+            </select>
+          </div>
+
           <!-- Samples Dropdown -->
           <select 
             @change="loadSample($event.target.value)" 
@@ -42,10 +66,75 @@
       <div class="flex-1 p-3 bg-slate-950 font-mono text-xs">
         <textarea 
           v-model="sqlText"
+          @keydown.meta.enter="runQuery"
+          @keydown.ctrl.enter="runQuery"
           class="w-full h-full bg-transparent text-slate-200 placeholder-slate-600 focus:outline-none resize-none"
           placeholder="SELECT p.ID, p.APELLIDO, p.NOMBRE, p.CUIL FROM PERSONAS p WHERE p.ACTIVO = 1"
           spellcheck="false"
         ></textarea>
+      </div>
+    </div>
+
+    <!-- Query Results Section -->
+    <div v-if="hasRun || isExecuting || queryError" class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col min-h-[300px]">
+      <div class="bg-slate-950/80 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <Table class="w-4 h-4 text-emerald-400" />
+          <span class="text-xs font-semibold text-slate-300">Resultado de la Consulta</span>
+          <span v-if="queryDuration !== null" class="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+            {{ queryDuration }} ms
+          </span>
+          <span v-if="resultRows.length > 0" class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+            {{ resultRows.length }} registros
+          </span>
+        </div>
+        <button 
+          v-if="hasRun" 
+          @click="clearResults" 
+          class="text-xs text-slate-500 hover:text-slate-300 transition"
+        >
+          Limpiar
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="isExecuting" class="p-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
+        <RefreshCw class="w-6 h-6 text-emerald-400 animate-spin" />
+        <span class="text-xs">Consultando base de datos Oracle...</span>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="queryError" class="p-6 text-xs text-rose-400 space-y-2">
+        <div class="font-semibold flex items-center gap-1.5">
+          <AlertCircle class="w-4 h-4 shrink-0" />
+          <span>Error retornado por Oracle / API:</span>
+        </div>
+        <pre class="whitespace-pre-wrap font-mono text-[11px] bg-rose-950/30 p-3 rounded-lg border border-rose-900/40 text-rose-300">{{ queryError }}</pre>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="hasRun && resultRows.length === 0" class="p-12 text-center text-slate-500 text-xs">
+        0 registros retornados desde Oracle para esta consulta.
+      </div>
+
+      <!-- Data Table -->
+      <div v-else-if="resultRows.length > 0" class="overflow-auto max-h-[450px]">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead class="bg-slate-950 sticky top-0 border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase tracking-wider">
+            <tr>
+              <th v-for="col in tableColumns" :key="col" class="p-3 font-semibold whitespace-nowrap">
+                {{ col }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">
+            <tr v-for="(row, idx) in resultRows" :key="idx" class="hover:bg-slate-800/40 transition">
+              <td v-for="col in tableColumns" :key="col" class="p-3 whitespace-nowrap text-[11px]">
+                {{ formatCell(row[col]) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -108,17 +197,69 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { api } from '../services/api';
 import { useAdminStore } from '../stores/adminStore';
-import { Terminal, Save, X } from '@lucide/vue';
+import { 
+  Terminal, 
+  Save, 
+  X, 
+  Play, 
+  Table, 
+  RefreshCw, 
+  AlertCircle 
+} from '@lucide/vue';
 
 const store = useAdminStore();
 const sqlText = ref('');
+const queryLimit = ref(50);
+const isExecuting = ref(false);
+const hasRun = ref(false);
+const resultRows = ref([]);
+const queryError = ref(null);
+const queryDuration = ref(null);
+
 const showModal = ref(false);
 const newViewName = ref('');
 const newViewDesc = ref('');
 const isSaving = ref(false);
+
+const tableColumns = computed(() => {
+  if (resultRows.value.length === 0) return [];
+  return Object.keys(resultRows.value[0]);
+});
+
+async function runQuery() {
+  if (!sqlText.value.trim() || isExecuting.value) return;
+  isExecuting.value = true;
+  hasRun.value = true;
+  queryError.value = null;
+  resultRows.value = [];
+  queryDuration.value = null;
+
+  try {
+    const res = await api.executeSql(sqlText.value.trim(), {}, queryLimit.value);
+    resultRows.value = res.rows || [];
+    queryDuration.value = res.durationMs ?? 0;
+  } catch (err) {
+    queryError.value = err.data ? (err.data.error || JSON.stringify(err.data, null, 2)) : err.message;
+  } finally {
+    isExecuting.value = false;
+  }
+}
+
+function clearResults() {
+  resultRows.value = [];
+  queryError.value = null;
+  queryDuration.value = null;
+  hasRun.value = false;
+}
+
+function formatCell(val) {
+  if (val === null || val === undefined) return '—';
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
 
 function openSaveModal() {
   if (!store.adminKey) {
