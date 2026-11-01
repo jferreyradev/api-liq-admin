@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import { api } from '../services/api';
+import { buildSqlFromViewConfig } from '../utils/sqlReconstructor';
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
     apiUrl: api.getBaseUrl(),
     adminKey: api.getAdminKey(),
     activeTab: 'dashboard',
+    sqlStudioDraft: '',
     
     // Conectividad y Salud
     isConnected: false,
@@ -50,6 +52,44 @@ export const useAdminStore = defineStore('admin', {
 
     setActiveTab(tab) {
       this.activeTab = tab;
+    },
+
+    openInSqlStudio(sql) {
+      this.sqlStudioDraft = sql || '';
+      this.activeTab = 'sqlStudio';
+    },
+
+    exportViews(viewNames = null) {
+      const targetNames = Array.isArray(viewNames) && viewNames.length > 0
+        ? viewNames
+        : this.viewsList;
+
+      if (!targetNames || targetNames.length === 0) {
+        throw new Error('No hay vistas disponibles para exportar.');
+      }
+
+      const payload = {};
+      targetNames.forEach(name => {
+        const config = this.viewsMap[name] || {};
+        payload[name] = {
+          ...config,
+          sqlQuery: buildSqlFromViewConfig(config)
+        };
+      });
+
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const suffix = targetNames.length === 1 ? `_${targetNames[0]}` : `_${targetNames.length}_vistas`;
+      a.download = `views${suffix}_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return targetNames.length;
     },
 
     async checkStatus() {

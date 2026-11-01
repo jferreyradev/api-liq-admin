@@ -197,7 +197,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { api } from '../services/api';
 import { useAdminStore } from '../stores/adminStore';
 import { 
@@ -218,6 +218,20 @@ const hasRun = ref(false);
 const resultRows = ref([]);
 const queryError = ref(null);
 const queryDuration = ref(null);
+
+onMounted(() => {
+  if (store.sqlStudioDraft) {
+    sqlText.value = store.sqlStudioDraft;
+    store.sqlStudioDraft = '';
+  }
+});
+
+watch(() => store.sqlStudioDraft, (newDraft) => {
+  if (newDraft) {
+    sqlText.value = newDraft;
+    store.sqlStudioDraft = '';
+  }
+});
 
 const showModal = ref(false);
 const newViewName = ref('');
