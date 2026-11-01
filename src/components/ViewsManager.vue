@@ -156,7 +156,23 @@
             </div>
 
             <!-- View Header Actions -->
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <button 
+                @click="openEditModal" 
+                class="flex items-center gap-1.5 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-800/80 transition"
+                title="Modificar consulta SQL o descripción de esta vista"
+              >
+                <Pencil class="w-3.5 h-3.5 text-indigo-400" />
+                <span>Editar Vista</span>
+              </button>
+              <button 
+                @click="openInStudio" 
+                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-indigo-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-900/60 transition"
+                title="Abrir sentencia SQL en SQL Studio para modificar o probar libremente"
+              >
+                <ExternalLink class="w-3.5 h-3.5 text-indigo-400" />
+                <span>Abrir en SQL Studio</span>
+              </button>
               <button 
                 @click="exportCurrentView" 
                 class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition"
@@ -166,12 +182,11 @@
                 <span>Exportar</span>
               </button>
               <button 
-                @click="openInStudio" 
-                class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-indigo-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-900/60 transition"
-                title="Abrir sentencia SQL en SQL Studio para modificar o probar libremente"
+                @click="deleteViewAction" 
+                class="flex items-center gap-1.5 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-rose-900/60 transition"
+                title="Desactivar/eliminar esta vista de Oracle"
               >
-                <ExternalLink class="w-3.5 h-3.5 text-indigo-400" />
-                <span>Abrir en SQL Studio</span>
+                <Trash2 class="w-3.5 h-3.5 text-rose-400" />
               </button>
             </div>
           </div>
@@ -380,8 +395,11 @@
         <!-- Modal Header -->
         <div class="bg-slate-950/80 px-6 py-4 border-b border-slate-800 flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <Plus class="w-5 h-5 text-indigo-400" />
-            <h3 class="font-bold text-slate-100 text-base">Crear Nueva Vista de la API</h3>
+            <Pencil v-if="isEditMode" class="w-5 h-5 text-indigo-400" />
+            <Plus v-else class="w-5 h-5 text-indigo-400" />
+            <h3 class="font-bold text-slate-100 text-base">
+              {{ isEditMode ? `Modificar Vista: ${newViewForm.name}` : 'Crear Nueva Vista de la API' }}
+            </h3>
           </div>
           <button 
             @click="showCreateModal = false"
@@ -393,8 +411,8 @@
 
         <!-- Modal Body -->
         <div class="p-6 overflow-y-auto space-y-4 text-xs">
-          <!-- Creation Mode Switcher -->
-          <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <!-- Creation Mode Switcher (Solo al crear nueva) -->
+          <div v-if="!isEditMode" class="flex items-center gap-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
             <button 
               @click="creationMode = 'sql'"
               class="flex-1 py-2 rounded-md font-semibold transition"
@@ -417,10 +435,13 @@
             <input 
               v-model="newViewForm.name" 
               type="text" 
+              :disabled="isEditMode"
               placeholder="Ej: empleadosActivos, conceptosLiquidacion, etc."
-              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
-            <span class="text-[11px] text-slate-500 mt-0.5 block">Quedará disponible inmediatamente en: <code>GET /api/view/{{ newViewForm.name || ':nombre' }}</code></span>
+            <span class="text-[11px] text-slate-500 mt-0.5 block">
+              {{ isEditMode ? 'El nombre es la clave primaria en API_VIEW_MAPPER y no puede cambiarse.' : `Quedará disponible inmediatamente en: GET /api/view/${newViewForm.name || ':nombre'}` }}
+            </span>
           </div>
 
           <div>
@@ -443,8 +464,7 @@
               class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-200 font-mono text-xs focus:outline-none focus:border-indigo-500 leading-relaxed"
             ></textarea>
             <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-lg text-slate-400 space-y-1">
-              <div>⚡ <b>Auto-Generación de Parámetros:</b> Los campos del <code>SELECT</code> se mapearán automáticamente.</div>
-              <div>⚡ Los parámetros como <code>:Periodo</code> o <code>:IdRep</code> en el <code>WHERE</code> se convertirán en filtros dinámicos aceptados por la URL.</div>
+              <div>⚡ <b>Auto-Mapeo:</b> El motor descompondrá la consulta en columnas y convertirá los binds (ej: <code>:Periodo</code>, <code>:IdRep</code>) en parámetros dinámicos de URL.</div>
             </div>
           </div>
 
@@ -478,7 +498,7 @@
           >
             <RefreshCw v-if="isSubmitting" class="w-4 h-4 animate-spin" />
             <Save v-else class="w-4 h-4" />
-            <span>{{ isSubmitting ? 'Guardando en Oracle...' : 'Guardar Vista en Oracle' }}</span>
+            <span>{{ isSubmitting ? 'Guardando en Oracle...' : (isEditMode ? 'Actualizar Vista en Oracle' : 'Guardar Vista en Oracle') }}</span>
           </button>
         </div>
       </div>
@@ -508,7 +528,9 @@ import {
   ExternalLink,
   FileJson,
   X,
-  Save
+  Save,
+  Pencil,
+  Trash2
 } from '@lucide/vue';
 
 const store = useAdminStore();
@@ -533,8 +555,9 @@ const queryParams = ref({
 
 const tableRows = ref([]);
 
-// Modal Nueva Vista State
+// Modal Nueva/Editar Vista State
 const showCreateModal = ref(false);
+const isEditMode = ref(false);
 const creationMode = ref('sql'); // 'sql' | 'oracle'
 const isSubmitting = ref(false);
 const newViewForm = ref({
@@ -738,6 +761,8 @@ async function handleImportFile(event) {
 }
 
 function openCreateModal() {
+  isEditMode.value = false;
+  creationMode.value = 'sql';
   newViewForm.value = {
     name: '',
     description: '',
@@ -745,6 +770,37 @@ function openCreateModal() {
     oracleView: ''
   };
   showCreateModal.value = true;
+}
+
+function openEditModal() {
+  if (!selectedView.value) return;
+  isEditMode.value = true;
+  creationMode.value = 'sql';
+  newViewForm.value = {
+    name: selectedView.value,
+    description: selectedViewMeta.value?.description || '',
+    sql: reconstructedSql.value,
+    oracleView: ''
+  };
+  showCreateModal.value = true;
+}
+
+async function deleteViewAction() {
+  if (!selectedView.value) return;
+  if (!confirm(`¿Estás seguro de que deseas desactivar/eliminar la vista "${selectedView.value}" en Oracle (API_VIEW_MAPPER)?`)) {
+    return;
+  }
+  try {
+    const viewToDelete = selectedView.value;
+    await api.deleteView(viewToDelete);
+    alert(`✅ Vista '${viewToDelete}' desactivada exitosamente.`);
+    selectedView.value = null;
+    selectedViewsList.value = selectedViewsList.value.filter(v => v !== viewToDelete);
+    await api.refreshViews();
+    await store.fetchViews();
+  } catch (err) {
+    alert(`❌ Error al eliminar vista: ${err.message}`);
+  }
 }
 
 async function submitCreateView() {
@@ -764,13 +820,14 @@ async function submitCreateView() {
     }
 
     const res = await api.saveView(payload);
-    alert(`✅ ${res.message || `Vista '${payload.viewName}' creada exitosamente en Oracle.`}`);
+    const actionLabel = isEditMode.value ? 'actualizada' : 'creada';
+    alert(`✅ ${res.message || `Vista '${payload.viewName}' ${actionLabel} exitosamente en Oracle.`}`);
     showCreateModal.value = false;
     await api.refreshViews();
     await store.fetchViews();
     selectView(payload.viewName);
   } catch (err) {
-    alert(`❌ Error al crear vista: ${err.message}`);
+    alert(`❌ Error al ${isEditMode.value ? 'actualizar' : 'crear'} vista: ${err.message}`);
   } finally {
     isSubmitting.value = false;
   }

@@ -102,6 +102,12 @@ class ApiService {
     });
   }
 
+  async deleteView(viewName) {
+    return this.request(`/api/view/${viewName}`, {
+      method: 'DELETE'
+    });
+  }
+
   async refreshViews() {
     return this.request('/api/view/refresh', { method: 'POST' });
   }
