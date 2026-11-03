@@ -1,5 +1,9 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+  <!-- Pantalla de Login / Autenticación -->
+  <LoginView v-if="store.showLoginScreen" />
+
+  <!-- Layout Principal de Consola -->
+  <div v-else class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
     <!-- Top Navigation Bar -->
     <Navbar @open-settings="showSettings = true" />
 
@@ -76,6 +80,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useAdminStore } from './stores/adminStore';
+import LoginView from './components/LoginView.vue';
 import Navbar from './components/Navbar.vue';
 import Sidebar from './components/Sidebar.vue';
 import Dashboard from './components/Dashboard.vue';

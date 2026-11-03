@@ -19,11 +19,13 @@ export const useAdminStore = defineStore('admin', {
     poolData: null,
     error: null,
 
-    // Seguridad y Sesión (Auto-Logout y Salida)
+    // Seguridad y Sesión (Auto-Logout, Salida y Login)
     lastActivity: Number(localStorage.getItem('api_liq_last_activity') || Date.now()),
     inactivityTimeoutMs: 30 * 60 * 1000, // 30 minutos
     showSessionExpiredModal: false,
     showLogoutModal: false,
+    isGuest: sessionStorage.getItem('api_liq_guest_mode') === 'true',
+    forceLoginView: false,
 
     // Datos cacheados
     viewsList: [],
@@ -40,6 +42,12 @@ export const useAdminStore = defineStore('admin', {
     },
     uptimeString: (state) => {
       return state.statusData?.uptime || 'N/A';
+    },
+    showLoginScreen: (state) => {
+      if (state.forceLoginView) return true;
+      // Si tiene clave de admin guardada o el usuario eligió entrar como invitado en esta sesión
+      if (state.adminKey || state.isGuest) return false;
+      return true;
     }
   },
 
@@ -74,7 +82,40 @@ export const useAdminStore = defineStore('admin', {
       }
     },
 
+    async login(key, customUrl = null) {
+      if (customUrl) {
+        this.setApiUrl(customUrl);
+      }
+      api.setAdminKey(key);
+      this.adminKey = api.getAdminKey();
+      this.forceLoginView = false;
+      this.isGuest = false;
+      sessionStorage.removeItem('api_liq_guest_mode');
+
+      // Validar contra la API
+      await api.verifyAdminKey();
+      this.isAdminVerified = true;
+      this.recordActivity();
+      await this.checkStatus();
+    },
+
+    enterAsGuest() {
+      this.isGuest = true;
+      this.forceLoginView = false;
+      sessionStorage.setItem('api_liq_guest_mode', 'true');
+      this.checkStatus();
+    },
+
+    openLoginScreen() {
+      this.forceLoginView = true;
+    },
+
+    closeLoginScreen() {
+      this.forceLoginView = false;
+    },
+
     logoutAndClearStorage(onlyKey = false) {
+      sessionStorage.removeItem('api_liq_guest_mode');
       if (onlyKey) {
         api.clearAdminKey();
       } else {
@@ -82,6 +123,8 @@ export const useAdminStore = defineStore('admin', {
       }
       this.adminKey = '';
       this.isAdminVerified = false;
+      this.isGuest = false;
+      this.forceLoginView = true;
       this.poolData = null;
       this.viewsList = [];
       this.viewsMap = {};
@@ -97,9 +140,12 @@ export const useAdminStore = defineStore('admin', {
     },
 
     logout(dueToInactivity = false) {
+      sessionStorage.removeItem('api_liq_guest_mode');
       api.clearAdminKey();
       this.adminKey = '';
       this.isAdminVerified = false;
+      this.isGuest = false;
+      this.forceLoginView = true;
       this.poolData = null;
       this.showLogoutModal = false;
       if (dueToInactivity) {

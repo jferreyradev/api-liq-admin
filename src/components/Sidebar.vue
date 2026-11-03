@@ -59,14 +59,24 @@
         </div>
       </div>
 
-      <!-- Logout / Limpiar button -->
+      <!-- Login or Logout in Sidebar -->
       <button 
+        v-if="!store.adminKey"
+        @click="store.openLoginScreen()"
+        class="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all group"
+      >
+        <LogIn class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+        <span>Iniciar Sesión Admin</span>
+      </button>
+
+      <button 
+        v-else
         @click="store.openLogoutModal()"
-        class="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all group"
+        class="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/20 transition-all group"
         title="Cerrar sesión y purgar datos locales"
       >
-        <LogOut class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-        <span>{{ store.adminKey ? 'Cerrar Sesión' : 'Cerrar / Limpiar Datos' }}</span>
+        <LogOut class="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-rose-400" />
+        <span>Cerrar Sesión</span>
       </button>
 
       <div class="mt-2 text-[11px] text-center text-slate-500">
@@ -86,7 +96,8 @@ import {
   Terminal, 
   FileSpreadsheet,
   Settings,
-  LogOut
+  LogOut,
+  LogIn
 } from '@lucide/vue';
 
 const store = useAdminStore();

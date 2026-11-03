@@ -24,6 +24,7 @@ Este documento permite que cualquier agente de IA en una nueva sesión o workspa
 api-liq-admin/
 ├── src/
 │   ├── components/
+│   │   ├── LoginView.vue        # Pantalla de inicio de sesión y autenticación con X-Admin-Key o modo lectura
 │   │   ├── Navbar.vue           # Barra superior con estado en vivo y selector de entorno
 │   │   ├── Sidebar.vue          # Menú lateral de navegación con conteos dinámicos
 │   │   ├── Dashboard.vue        # Métricas en vivo (Uptime, Node version, medidor de Pool Oracle 11g)
