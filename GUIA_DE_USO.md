@@ -127,3 +127,67 @@ Consola interactiva para escribir y probar consultas directamente contra la base
 > En toda esta API, cualquier parámetro o filtro que represente un período (`Periodo`, `PeriodoLiq`, `vPERIODO`, `PeriodoDDJJ`) utiliza **SIEMPRE el día 01 del mes** en formato `01/MM/YYYY`.
 > 
 > *Ejemplos válidos:* `01/09/2026`, `01/10/2026`.
+
+---
+
+## 8. Seguridad y Gestión de Usuarios
+
+### 8.1. Auto-Logout por Inactividad (Frontend)
+- Si dejas la aplicación abierta sin interactuar (sin movimientos de mouse, clics ni teclas) durante **30 minutos**, la sesión se cerrará de forma automática.
+- Las credenciales (`X-Admin-Key`) se borran de la memoria y del `localStorage`.
+- Aparecerá un cuadro de diálogo informando el cierre por seguridad, permitiéndote **Reconectar Administrador** o continuar en modo lectura.
+
+### 8.2. Rate Limiting Anti-Fuerza Bruta (Backend)
+- **Rutas de Autenticación y Administración (`/api/admin/*`, `/api/auth/login`, `/adduser`):**
+  - Limitadas a un máximo de **15 peticiones por minuto por IP**.
+  - Si un script intenta adivinar contraseñas, la API responderá con `HTTP 429 Too Many Requests` y cabecera `Retry-After: 60`.
+- **Rutas Generales (`/api/*`):**
+  - Limitadas a **300 peticiones por minuto por IP** para evitar sobrecarga del pool de Oracle.
+
+### 8.3. Login para el Panel de Gestión (Multi-Usuario Masivo)
+Para los operadores municipales o usuarios del sistema de gestión de sueldos:
+
+* **Endpoint:** `POST /api/auth/login` (o `POST /login`)
+* **Headers:** `Content-Type: application/json`
+* **Body:**
+  ```json
+  {
+    "usr": "operador_trancas",
+    "pws": "contraseña_segura"
+  }
+  ```
+* **Respuesta Exitosa (`HTTP 200`):**
+  ```json
+  {
+    "status": "ok",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresInSeconds": 28800,
+    "user": {
+      "id": 5,
+      "usr": "operador_trancas",
+      "email": "operador@municipio.gov.ar",
+      "role": 2
+    }
+  }
+  ```
+* **Uso del Token:** El Panel de Gestión guarda ese `token` y lo envía en las consultas subsecuentes:
+  ```http
+  Authorization: Bearer <token>
+  ```
+
+### 8.4. Dar de Alta Nuevos Usuarios
+Para registrar nuevos usuarios en la base de datos Oracle (`US_SUELDO.USUARIOS`):
+* **Endpoint:** `POST /adduser`
+* **Headers:** 
+  - `Content-Type: application/json`
+  - `X-Admin-Key: <clave_admin>`
+* **Body:**
+  ```json
+  {
+    "usr": "nuevo_usuario",
+    "pws": "clave123",
+    "email": "usuario@municipio.gov.ar",
+    "idrol": 2
+  }
+  ```
+La contraseña se almacena automáticamente cifrada con `bcryptjs` en Oracle.
