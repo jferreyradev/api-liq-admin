@@ -74,6 +74,22 @@
             Los datos se guardan exclusivamente en el <code class="text-slate-300">localStorage</code> de este navegador. La clave nunca sale de tu equipo excepto en la cabecera <code class="text-slate-300">X-Admin-Key</code> hacia la API.
           </p>
         </div>
+
+        <!-- Storage Cleanup Action -->
+        <div class="flex items-center justify-between p-3 bg-rose-500/5 rounded-xl border border-rose-500/20 text-xs">
+          <div>
+            <div class="font-semibold text-rose-300">Purgar Almacenamiento Local</div>
+            <div class="text-[11px] text-slate-400">Cierra la sesión y elimina claves o configuración guardadas.</div>
+          </div>
+          <button 
+            type="button"
+            @click="triggerLogoutModal"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition flex items-center gap-1.5"
+          >
+            <LogOut class="w-3.5 h-3.5" />
+            <span>Gestionar Salida</span>
+          </button>
+        </div>
       </div>
 
       <!-- Footer Buttons -->
@@ -109,7 +125,7 @@
 import { ref, watch } from 'vue';
 import { useAdminStore } from '../stores/adminStore';
 import { api } from '../services/api';
-import { Settings, X, Eye, EyeOff, Shield } from '@lucide/vue';
+import { Settings, X, Eye, EyeOff, Shield, LogOut } from '@lucide/vue';
 
 const props = defineProps({
   isOpen: Boolean
@@ -140,6 +156,11 @@ async function testConnection() {
   } finally {
     isTesting.value = false;
   }
+}
+
+function triggerLogoutModal() {
+  emit('close');
+  store.openLogoutModal();
 }
 
 function saveSettings() {

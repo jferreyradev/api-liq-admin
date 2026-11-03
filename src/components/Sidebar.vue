@@ -58,7 +58,18 @@
           </div>
         </div>
       </div>
-      <div class="mt-3 text-[11px] text-center text-slate-500">
+
+      <!-- Logout / Limpiar button -->
+      <button 
+        @click="store.openLogoutModal()"
+        class="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all group"
+        title="Cerrar sesión y purgar datos locales"
+      >
+        <LogOut class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+        <span>{{ store.adminKey ? 'Cerrar Sesión' : 'Cerrar / Limpiar Datos' }}</span>
+      </button>
+
+      <div class="mt-2 text-[11px] text-center text-slate-500">
         API Liquid v1.0.0
       </div>
     </div>
@@ -74,7 +85,8 @@ import {
   Code2, 
   Terminal, 
   FileSpreadsheet,
-  Settings
+  Settings,
+  LogOut
 } from '@lucide/vue';
 
 const store = useAdminStore();

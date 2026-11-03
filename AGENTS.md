@@ -31,7 +31,8 @@ api-liq-admin/
 │   │   ├── ProceduresManager.vue# Introspección y ejecución de Stored Procedures y Funciones PL/SQL
 │   │   ├── SqlStudio.vue        # Editor SELECT interactivo con auto-conversión a endpoints
 │   │   ├── ImporterManager.vue  # Carga masiva por lotes (Excel/CSV) con mapeo visual
-│   │   └── SettingsModal.vue    # Configuración de URL base y X-Admin-Key persistidos en localStorage
+│   │   ├── SettingsModal.vue    # Configuración de URL base y X-Admin-Key persistidos en localStorage
+│   │   └── LogoutModal.vue      # Modal de confirmación para cerrar sesión y purgar localStorage
 │   ├── services/
 │   │   └── api.js               # Cliente HTTP desacoplado con inyección de X-Admin-Key
 │   ├── stores/

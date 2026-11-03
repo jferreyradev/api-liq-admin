@@ -19,10 +19,11 @@ export const useAdminStore = defineStore('admin', {
     poolData: null,
     error: null,
 
-    // Seguridad y Sesión (Auto-Logout)
+    // Seguridad y Sesión (Auto-Logout y Salida)
     lastActivity: Number(localStorage.getItem('api_liq_last_activity') || Date.now()),
     inactivityTimeoutMs: 30 * 60 * 1000, // 30 minutos
     showSessionExpiredModal: false,
+    showLogoutModal: false,
 
     // Datos cacheados
     viewsList: [],
@@ -74,12 +75,34 @@ export const useAdminStore = defineStore('admin', {
     },
 
     logout(dueToInactivity = false) {
-      this.setAdminKey('');
+      api.clearAdminKey();
+      this.adminKey = '';
       this.isAdminVerified = false;
       this.poolData = null;
+      this.showLogoutModal = false;
       if (dueToInactivity) {
         this.showSessionExpiredModal = true;
+      } else {
+        this.checkStatus();
       }
+    },
+
+    resetAndClearAll() {
+      api.clearAllStorage();
+      this.adminKey = '';
+      this.isAdminVerified = false;
+      this.poolData = null;
+      this.apiUrl = api.getBaseUrl();
+      this.showLogoutModal = false;
+      this.checkStatus();
+    },
+
+    openLogoutModal() {
+      this.showLogoutModal = true;
+    },
+
+    closeLogoutModal() {
+      this.showLogoutModal = false;
     },
 
     dismissSessionExpiredModal() {

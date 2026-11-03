@@ -53,13 +53,26 @@
         <Settings class="w-4 h-4 text-slate-400" />
         <span>Configurar</span>
       </button>
+
+      <!-- Logout / Salir Button -->
+      <button 
+        @click="store.openLogoutModal()" 
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm border"
+        :class="store.adminKey 
+          ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20 hover:border-rose-500/30' 
+          : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700 hover:border-slate-600'"
+        title="Cerrar sesión y borrar datos de localStorage"
+      >
+        <LogOut class="w-3.5 h-3.5" :class="store.adminKey ? 'text-rose-400' : 'text-slate-400'" />
+        <span>{{ store.adminKey ? 'Cerrar Sesión' : 'Salir / Limpiar' }}</span>
+      </button>
     </div>
   </header>
 </template>
 
 <script setup>
 import { useAdminStore } from '../stores/adminStore';
-import { Database, ShieldCheck, KeyRound, RefreshCw, Settings } from '@lucide/vue';
+import { Database, ShieldCheck, KeyRound, RefreshCw, Settings, LogOut } from '@lucide/vue';
 
 defineEmits(['open-settings']);
 const store = useAdminStore();

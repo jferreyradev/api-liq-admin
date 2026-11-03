@@ -23,6 +23,17 @@ class ApiService {
     localStorage.setItem('api_liq_admin_key', key.trim());
   }
 
+  clearAdminKey() {
+    localStorage.removeItem('api_liq_admin_key');
+    localStorage.removeItem('api_liq_last_activity');
+  }
+
+  clearAllStorage() {
+    localStorage.removeItem('api_liq_admin_key');
+    localStorage.removeItem('api_liq_last_activity');
+    localStorage.removeItem('api_liq_base_url');
+  }
+
   async request(endpoint, options = {}) {
     const baseUrl = this.getBaseUrl();
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;

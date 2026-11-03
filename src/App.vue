@@ -30,6 +30,9 @@
       @close="showSettings = false" 
     />
 
+    <!-- Modal de Salida y Limpieza de Almacenamiento -->
+    <LogoutModal />
+
     <!-- Modal de Sesión Expirada por Inactividad -->
     <div 
       v-if="store.showSessionExpiredModal" 
@@ -81,6 +84,7 @@ import ProceduresManager from './components/ProceduresManager.vue';
 import SqlStudio from './components/SqlStudio.vue';
 import ImporterManager from './components/ImporterManager.vue';
 import SettingsModal from './components/SettingsModal.vue';
+import LogoutModal from './components/LogoutModal.vue';
 import { Clock, Lock } from '@lucide/vue';
 
 const store = useAdminStore();
