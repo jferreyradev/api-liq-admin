@@ -32,6 +32,12 @@ class ApiService {
     localStorage.removeItem('api_liq_admin_key');
     localStorage.removeItem('api_liq_last_activity');
     localStorage.removeItem('api_liq_base_url');
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('Error clearing storage:', e);
+    }
   }
 
   async request(endpoint, options = {}) {

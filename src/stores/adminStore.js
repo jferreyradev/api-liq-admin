@@ -74,6 +74,28 @@ export const useAdminStore = defineStore('admin', {
       }
     },
 
+    logoutAndClearStorage(onlyKey = false) {
+      if (onlyKey) {
+        api.clearAdminKey();
+      } else {
+        api.clearAllStorage();
+      }
+      this.adminKey = '';
+      this.isAdminVerified = false;
+      this.poolData = null;
+      this.viewsList = [];
+      this.viewsMap = {};
+      this.proceduresList = [];
+      this.proceduresMap = {};
+      this.functionsList = [];
+      this.functionsMap = {};
+      this.activeTab = 'dashboard';
+      this.showLogoutModal = false;
+
+      // Recarga forzada para limpiar memoria del navegador
+      window.location.reload();
+    },
+
     logout(dueToInactivity = false) {
       api.clearAdminKey();
       this.adminKey = '';
@@ -83,18 +105,12 @@ export const useAdminStore = defineStore('admin', {
       if (dueToInactivity) {
         this.showSessionExpiredModal = true;
       } else {
-        this.checkStatus();
+        window.location.reload();
       }
     },
 
     resetAndClearAll() {
-      api.clearAllStorage();
-      this.adminKey = '';
-      this.isAdminVerified = false;
-      this.poolData = null;
-      this.apiUrl = api.getBaseUrl();
-      this.showLogoutModal = false;
-      this.checkStatus();
+      this.logoutAndClearStorage(false);
     },
 
     openLogoutModal() {
