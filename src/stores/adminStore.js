@@ -45,8 +45,8 @@ export const useAdminStore = defineStore('admin', {
     },
     showLoginScreen: (state) => {
       if (state.forceLoginView) return true;
-      // Si tiene clave de admin guardada o el usuario eligió entrar como invitado en esta sesión
-      if (state.adminKey || state.isGuest) return false;
+      // Solo permite salir del login si la clave está verificada por la API o si eligió Modo Solo Lectura
+      if ((state.adminKey && state.isAdminVerified) || state.isGuest) return false;
       return true;
     }
   },
@@ -83,18 +83,25 @@ export const useAdminStore = defineStore('admin', {
     },
 
     async login(key, customUrl = null) {
+      const cleanKey = (key || '').trim();
+      if (!cleanKey) {
+        throw new Error('Debes ingresar la clave de administrador.');
+      }
+
       if (customUrl) {
         this.setApiUrl(customUrl);
       }
-      api.setAdminKey(key);
-      this.adminKey = api.getAdminKey();
+
+      // 1. Probar la clave contra la API ANTES de guardarla o cambiar de pantalla
+      await api.verifyAdminKey(cleanKey);
+
+      // 2. Solo si la API la aprueba (200 OK):
+      api.setAdminKey(cleanKey);
+      this.adminKey = cleanKey;
+      this.isAdminVerified = true;
       this.forceLoginView = false;
       this.isGuest = false;
       sessionStorage.removeItem('api_liq_guest_mode');
-
-      // Validar contra la API
-      await api.verifyAdminKey();
-      this.isAdminVerified = true;
       this.recordActivity();
       await this.checkStatus();
     },
@@ -256,6 +263,9 @@ export const useAdminStore = defineStore('admin', {
         this.poolData = poolRes;
       } catch (err) {
         this.isAdminVerified = false;
+        // Si la clave guardada en el navegador ya no es válida en la API, purgarla
+        api.clearAdminKey();
+        this.adminKey = '';
       }
     },
 

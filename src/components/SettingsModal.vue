@@ -15,27 +15,46 @@
       <!-- Settings Form -->
       <div class="space-y-4 text-xs">
         <!-- API URL -->
-        <div>
-          <label class="block text-slate-400 font-medium mb-1.5">URL Base de la API Liquid:</label>
+        <div class="space-y-2">
+          <label class="block text-slate-400 font-medium">Servidor de la API Liquid:</label>
+          
+          <!-- Dropdown selector de servidores configurados -->
+          <select 
+            :value="tempUrl" 
+            @change="tempUrl = $event.target.value"
+            class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 text-xs focus:outline-none focus:border-indigo-500 font-sans"
+          >
+            <option 
+              v-for="ep in availableEndpoints" 
+              :key="ep.url" 
+              :value="ep.url"
+            >
+              {{ ep.name }} ({{ ep.url }})
+            </option>
+          </select>
+
+          <!-- Input manual -->
           <input 
             v-model="tempUrl" 
             type="text" 
-            placeholder="https://api-rpi.liqsysonline.com"
+            placeholder="https://api-desa.liqsysonline.com"
             class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 font-mono focus:outline-none focus:border-indigo-500" 
           />
-          <div class="flex items-center gap-2 mt-2">
-            <span class="text-slate-500 text-[11px]">Accesos rápidos:</span>
+
+          <!-- Botones rápidos dinámicos -->
+          <div class="flex flex-wrap items-center gap-1.5 pt-1">
+            <span class="text-slate-500 text-[11px] mr-1">Accesos rápidos:</span>
             <button 
-              @click="tempUrl = 'https://api-rpi.liqsysonline.com'" 
-              class="px-2 py-0.5 rounded bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px]"
+              v-for="ep in availableEndpoints"
+              :key="ep.url"
+              type="button"
+              @click="tempUrl = ep.url" 
+              class="px-2.5 py-1 rounded text-[11px] font-medium transition border"
+              :class="tempUrl === ep.url 
+                ? 'bg-indigo-600/25 text-indigo-300 border-indigo-500/40 font-semibold' 
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
             >
-              Raspberry Producción (api-rpi)
-            </button>
-            <button 
-              @click="tempUrl = 'http://localhost:3005'" 
-              class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]"
-            >
-              Localhost:3005
+              {{ ep.name }}
             </button>
           </div>
         </div>
@@ -125,6 +144,7 @@
 import { ref, watch } from 'vue';
 import { useAdminStore } from '../stores/adminStore';
 import { api } from '../services/api';
+import { getApiEndpoints } from '../config/apiEndpoints';
 import { Settings, X, Eye, EyeOff, Shield, LogOut } from '@lucide/vue';
 
 const props = defineProps({
@@ -133,6 +153,7 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const store = useAdminStore();
+const availableEndpoints = ref(getApiEndpoints());
 const tempUrl = ref(store.apiUrl);
 const tempKey = ref(store.adminKey);
 const showPassword = ref(false);

@@ -13,7 +13,7 @@ Este documento permite que cualquier agente de IA en una nueva sesión o workspa
 * **Estilos:** **Tailwind CSS v4** (`@tailwindcss/vite`).
 * **Iconografía:** **`@lucide/vue`**.
 * **Gestión de Estado:** **Pinia** (`src/stores/adminStore.js`).
-* **Backend de Producción Conectado:** `https://api-rpi.liqsysonline.com` (Raspberry Pi a través de Cloudflare Tunnel).
+* **Backend de Producción Conectado:** `https://api-desa.liqsysonline.com` (a través de Cloudflare Tunnel).
 * **Backend de Desarrollo Local:** `http://localhost:3005`.
 
 ---
@@ -34,6 +34,8 @@ api-liq-admin/
 │   │   ├── ImporterManager.vue  # Carga masiva por lotes (Excel/CSV) con mapeo visual
 │   │   ├── SettingsModal.vue    # Configuración de URL base y X-Admin-Key persistidos en localStorage
 │   │   └── LogoutModal.vue      # Modal de confirmación para cerrar sesión y purgar localStorage
+│   ├── config/
+│   │   └── apiEndpoints.js      # Catálogo centralizado de pares { name, url } de servidores API
 │   ├── services/
 │   │   └── api.js               # Cliente HTTP desacoplado con inyección de X-Admin-Key
 │   ├── stores/
@@ -44,7 +46,7 @@ api-liq-admin/
 ├── index.html                   # HTML base de la SPA
 ├── vite.config.js               # Configuración de Vite con plugin Vue y Tailwind
 ├── package.json                 # Dependencias limpias (0 vulnerabilidades)
-└── .env                         # VITE_API_URL=https://api-rpi.liqsysonline.com
+└── .env                         # VITE_API_ENDPOINTS='[{"name":"...","url":"..."}]'
 ```
 
 ---

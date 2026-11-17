@@ -21,7 +21,7 @@
    - Identificación de la falta de `libaio1` en la Raspberry Pi y resolución con `sudo apt install -y libaio1`.
    - Verificación de Thick Mode de Oracle cargado con éxito en Linux `aarch64`.
    - Comprobación en vivo del endpoint de producción por Cloudflare Tunnel:
-     - URL: `https://api-rpi.liqsysonline.com`
+     - URL: `https://api-desa.liqsysonline.com`
      - Estado: **HTTP 200 OK**, Uptime activo y Pool de Oracle conectado.
 
 3. **Creación del Nuevo Proyecto Frontend Desacoplado (`api-liq-admin`):**
@@ -34,7 +34,7 @@
 
 ## 🧩 Componentes y Funcionalidades Desarrolladas en `api-liq-admin`
 
-* **`src/services/api.js`:** Cliente HTTP con inyección automática de cabecera `X-Admin-Key` y URL configurable (`https://api-rpi.liqsysonline.com` por defecto).
+* **`src/services/api.js`:** Cliente HTTP con inyección automática de cabecera `X-Admin-Key` y URL configurable (`https://api-desa.liqsysonline.com` por defecto).
 * **`src/stores/adminStore.js`:** Store reactivo en Pinia con estado de conectividad, métricas del pool de Oracle y caché de vistas/procedimientos.
 * **`src/components/Navbar.vue`:** Cabecera con indicador de salud en tiempo real, selector de servidor y estado de autenticación.
 * **`src/components/Sidebar.vue`:** Menú lateral de navegación con medidor miniatura del pool de Oracle.
@@ -50,7 +50,7 @@
 ## 🚀 Estado Actual y Próximos Pasos
 
 * El frontend está 100% funcional y listo para ejecutarse con `npm run dev`.
-* Está conectado por defecto al backend productivo `https://api-rpi.liqsysonline.com`.
+* Está conectado por defecto al backend `https://api-desa.liqsysonline.com`.
 * Próximos pasos a definir por el usuario:
   - Personalización de vistas y diseño.
   - Subir el repositorio a GitHub (`github.com/jferreyradev/api-liq-admin`).

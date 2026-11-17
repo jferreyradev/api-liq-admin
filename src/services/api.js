@@ -1,9 +1,22 @@
+import { getDefaultApiUrl } from '../config/apiEndpoints';
+
 /**
  * Cliente HTTP ligero y desacoplado para node-apiliq
  */
 class ApiService {
   constructor() {
-    this.defaultBaseUrl = import.meta.env.VITE_API_URL || 'https://api-rpi.liqsysonline.com';
+    this.defaultBaseUrl = getDefaultApiUrl();
+  }
+
+  normalizeUrl(url) {
+    if (!url) return '';
+    let clean = url.trim().replace(/\/+$/, '');
+    if (clean.startsWith('localhost:') || clean.startsWith('127.0.0.1:') || clean === 'localhost') {
+      clean = `http://${clean}`;
+    } else if (!/^https?:\/\//i.test(clean)) {
+      clean = `https://${clean}`;
+    }
+    return clean;
   }
 
   getBaseUrl() {
@@ -11,8 +24,10 @@ class ApiService {
   }
 
   setBaseUrl(url) {
-    const clean = url.trim().replace(/\/+$/, '');
-    localStorage.setItem('api_liq_base_url', clean);
+    const clean = this.normalizeUrl(url);
+    if (clean) {
+      localStorage.setItem('api_liq_base_url', clean);
+    }
   }
 
   getAdminKey() {
@@ -92,8 +107,12 @@ class ApiService {
     return this.request('/api/admin/pool-status');
   }
 
-  async verifyAdminKey() {
-    return this.request('/api/admin/verify', { method: 'POST' });
+  async verifyAdminKey(keyOverride = null) {
+    const options = { method: 'POST' };
+    if (keyOverride) {
+      options.headers = { 'X-Admin-Key': keyOverride.trim() };
+    }
+    return this.request('/api/admin/verify', options);
   }
 
   // --- Endpoints de Vistas ---

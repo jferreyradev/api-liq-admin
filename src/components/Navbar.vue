@@ -17,7 +17,7 @@
     <!-- Center Host Indicator -->
     <div class="hidden md:flex items-center gap-2 bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-full text-xs text-slate-300">
       <span class="w-2 h-2 rounded-full" :class="store.isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'"></span>
-      <span class="text-slate-400">Conectado a:</span>
+      <span class="text-slate-400">{{ currentServerLabel }}:</span>
       <span class="font-mono font-medium text-sky-400">{{ store.apiUrl }}</span>
     </div>
 
@@ -80,9 +80,17 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useAdminStore } from '../stores/adminStore';
+import { getApiEndpoints } from '../config/apiEndpoints';
 import { Database, ShieldCheck, KeyRound, RefreshCw, Settings, LogOut, LogIn } from '@lucide/vue';
 
 defineEmits(['open-settings']);
 const store = useAdminStore();
+
+const currentServerLabel = computed(() => {
+  const endpoints = getApiEndpoints();
+  const match = endpoints.find(e => e.url === store.apiUrl);
+  return match ? match.name : 'Conectado a';
+});
 </script>

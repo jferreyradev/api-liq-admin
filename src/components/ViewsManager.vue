@@ -111,19 +111,32 @@
             :class="selectedView === vName ? 'bg-indigo-600/15 text-indigo-300 border-l-2 border-indigo-500' : 'text-slate-300 hover:bg-slate-800/50'"
             @click="selectView(vName)"
           >
-            <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="flex items-center gap-2.5 overflow-hidden flex-1 mr-2">
               <input 
                 type="checkbox" 
                 :checked="selectedViewsList.includes(vName)" 
                 @click.stop="toggleViewSelection(vName)"
                 class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
-              <div class="space-y-0.5 truncate">
+              <div class="space-y-0.5 truncate flex-1">
                 <div class="font-mono font-medium truncate group-hover:text-indigo-400">{{ vName }}</div>
-                <div class="text-[11px] text-slate-500 truncate">GET /api/view/{{ vName }}</div>
+                <div class="text-[11px] text-slate-500 truncate font-mono select-all" @click.stop>
+                  GET /api/view/{{ vName }}
+                </div>
               </div>
             </div>
-            <ChevronRight class="w-4 h-4 text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition shrink-0 ml-2" />
+            <div class="flex items-center gap-1 shrink-0">
+              <button 
+                type="button"
+                @click.stop="copyQuickViewEndpoint(vName)"
+                class="p-1 rounded text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition"
+                :title="copiedEndpointItem === vName ? '¡Copiado!' : 'Copiar URL completa de esta vista'"
+              >
+                <Check v-if="copiedEndpointItem === vName" class="w-3.5 h-3.5 text-emerald-400" />
+                <Copy v-else class="w-3.5 h-3.5" />
+              </button>
+              <ChevronRight class="w-4 h-4 text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition" />
+            </div>
           </div>
 
           <div v-if="filteredViews.length === 0" class="p-8 text-center text-slate-500 text-xs">
@@ -270,13 +283,32 @@
               </div>
             </div>
 
-            <!-- Botón Ejecutar -->
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-500 font-mono">GET /api/view/{{ selectedView }}</span>
+            <!-- Barra de Endpoint y Ejecución -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+              <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                  GET
+                </span>
+                <code 
+                  class="text-xs text-sky-300 font-mono select-all truncate cursor-text" 
+                  :title="currentFullViewUrl"
+                >
+                  {{ currentFullViewUrl }}
+                </code>
+                <button 
+                  type="button"
+                  @click="copyEndpointUrl(currentFullViewUrl)" 
+                  class="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition shrink-0"
+                  :title="hasCopiedEndpoint ? '¡Copiado!' : 'Copiar URL completa al portapapeles'"
+                >
+                  <Check v-if="hasCopiedEndpoint" class="w-3.5 h-3.5 text-emerald-400" />
+                  <Copy v-else class="w-3.5 h-3.5" />
+                </button>
+              </div>
               <button 
                 @click="executeViewQuery" 
                 :disabled="isLoadingData"
-                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm"
+                class="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm shrink-0"
               >
                 <Play class="w-3.5 h-3.5 fill-current" />
                 <span>{{ isLoadingData ? 'Consultando Oracle...' : 'Ejecutar Query' }}</span>
@@ -545,6 +577,8 @@ const queryError = ref(null);
 
 const hasCopiedSql = ref(false);
 const hasCopiedJson = ref(false);
+const hasCopiedEndpoint = ref(false);
+const copiedEndpointItem = ref(null);
 
 const queryParams = ref({
   limit: 25,
@@ -607,6 +641,19 @@ const jsonConfigString = computed(() => {
   return JSON.stringify(selectedViewMeta.value, null, 2);
 });
 
+const currentFullViewUrl = computed(() => {
+  if (!selectedView.value) return '';
+  const base = store.apiUrl ? store.apiUrl.replace(/\/+$/, '') : '';
+  const query = new URLSearchParams();
+  for (const [key, val] of Object.entries(queryParams.value)) {
+    if (val !== undefined && val !== null && val !== '') {
+      query.append(key, val);
+    }
+  }
+  const qStr = query.toString();
+  return `${base}/api/view/${selectedView.value}${qStr ? '?' + qStr : ''}`;
+});
+
 const isFormValid = computed(() => {
   if (!newViewForm.value.name.trim()) return false;
   if (creationMode.value === 'sql') {
@@ -634,6 +681,36 @@ function selectView(name) {
   hasExecuted.value = false;
   hasCopiedSql.value = false;
   hasCopiedJson.value = false;
+  hasCopiedEndpoint.value = false;
+}
+
+async function copyEndpointUrl(url) {
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    hasCopiedEndpoint.value = true;
+    setTimeout(() => {
+      hasCopiedEndpoint.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error('Error al copiar endpoint al portapapeles:', err);
+  }
+}
+
+async function copyQuickViewEndpoint(vName) {
+  const base = store.apiUrl ? store.apiUrl.replace(/\/+$/, '') : '';
+  const fullUrl = `${base}/api/view/${vName}`;
+  try {
+    await navigator.clipboard.writeText(fullUrl);
+    copiedEndpointItem.value = vName;
+    setTimeout(() => {
+      if (copiedEndpointItem.value === vName) {
+        copiedEndpointItem.value = null;
+      }
+    }, 2000);
+  } catch (err) {
+    console.error('Error al copiar endpoint rápido:', err);
+  }
 }
 
 function toggleViewSelection(name) {

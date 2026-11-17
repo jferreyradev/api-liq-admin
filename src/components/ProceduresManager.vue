@@ -66,11 +66,24 @@
             class="p-3.5 cursor-pointer transition flex items-center justify-between text-xs group"
             :class="selectedItem === item ? 'bg-indigo-600/15 text-indigo-300 border-l-2 border-indigo-500' : 'text-slate-300 hover:bg-slate-800/50'"
           >
-            <div class="space-y-0.5">
-              <div class="font-mono font-medium group-hover:text-indigo-400">{{ item }}</div>
-              <div class="text-[11px] text-slate-500">POST /api/{{ activeSubTab }}/{{ item }}</div>
+            <div class="space-y-0.5 overflow-hidden flex-1 mr-2">
+              <div class="font-mono font-medium group-hover:text-indigo-400 truncate">{{ item }}</div>
+              <div class="text-[11px] text-slate-500 font-mono select-all truncate" @click.stop>
+                POST /api/{{ activeSubTab }}/{{ item }}
+              </div>
             </div>
-            <ChevronRight class="w-4 h-4 text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition" />
+            <div class="flex items-center gap-1 shrink-0">
+              <button 
+                type="button"
+                @click.stop="copyQuickProcedureEndpoint(item)"
+                class="p-1 rounded text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition"
+                :title="copiedEndpointItem === item ? '¡Copiado!' : 'Copiar URL completa'"
+              >
+                <Check v-if="copiedEndpointItem === item" class="w-3.5 h-3.5 text-emerald-400" />
+                <Copy v-else class="w-3.5 h-3.5" />
+              </button>
+              <ChevronRight class="w-4 h-4 text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition" />
+            </div>
           </div>
         </div>
       </div>
@@ -104,6 +117,30 @@
               <Play class="w-3.5 h-3.5 fill-current" />
               <span>{{ isExecuting ? 'Ejecutando en Oracle...' : 'Ejecutar en Oracle' }}</span>
             </button>
+          </div>
+
+          <!-- Barra de Endpoint Destacada y Seleccionable -->
+          <div class="flex items-center justify-between bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+            <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 shrink-0">
+                POST
+              </span>
+              <code 
+                class="text-xs text-indigo-300 font-mono select-all truncate cursor-text"
+                :title="currentFullProcedureUrl"
+              >
+                {{ currentFullProcedureUrl }}
+              </code>
+              <button 
+                type="button"
+                @click="copyProcedureUrl(currentFullProcedureUrl)" 
+                class="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition shrink-0"
+                :title="hasCopiedEndpoint ? '¡Copiado!' : 'Copiar URL completa al portapapeles'"
+              >
+                <Check v-if="hasCopiedEndpoint" class="w-3.5 h-3.5 text-emerald-400" />
+                <Copy v-else class="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <!-- Payload Input Builder (JSON Editor) -->
@@ -168,7 +205,9 @@ import {
   Play, 
   RefreshCw, 
   AlertCircle, 
-  CheckCircle 
+  CheckCircle,
+  Copy,
+  Check
 } from '@lucide/vue';
 
 const store = useAdminStore();
@@ -181,6 +220,43 @@ const rawPayload = ref('{\n  \n}');
 const executionResult = ref(null);
 const executionError = ref(null);
 const executionTime = ref(null);
+const hasCopiedEndpoint = ref(false);
+const copiedEndpointItem = ref(null);
+
+const currentFullProcedureUrl = computed(() => {
+  if (!selectedItem.value) return '';
+  const base = store.apiUrl ? store.apiUrl.replace(/\/+$/, '') : '';
+  return `${base}/api/${activeSubTab.value}/${selectedItem.value}`;
+});
+
+async function copyProcedureUrl(url) {
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    hasCopiedEndpoint.value = true;
+    setTimeout(() => {
+      hasCopiedEndpoint.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error('Error al copiar endpoint:', err);
+  }
+}
+
+async function copyQuickProcedureEndpoint(item) {
+  const base = store.apiUrl ? store.apiUrl.replace(/\/+$/, '') : '';
+  const fullUrl = `${base}/api/${activeSubTab.value}/${item}`;
+  try {
+    await navigator.clipboard.writeText(fullUrl);
+    copiedEndpointItem.value = item;
+    setTimeout(() => {
+      if (copiedEndpointItem.value === item) {
+        copiedEndpointItem.value = null;
+      }
+    }, 2000);
+  } catch (err) {
+    console.error('Error al copiar:', err);
+  }
+}
 
 const currentList = computed(() => {
   const list = activeSubTab.value === 'sp' ? store.proceduresList : store.functionsList;
@@ -208,6 +284,7 @@ function selectItem(item) {
   executionResult.value = null;
   executionError.value = null;
   executionTime.value = null;
+  hasCopiedEndpoint.value = false;
 
   const meta = activeSubTab.value === 'sp' 
     ? store.proceduresMap[item] 

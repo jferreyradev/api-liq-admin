@@ -22,48 +22,75 @@
       </div>
 
       <!-- Environment / API Status Pill -->
-      <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+      <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5">
         <div class="flex items-center justify-between text-xs">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full" :class="isChecking ? 'bg-amber-400 animate-pulse' : (apiConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500')"></span>
-            <span class="text-slate-400">Servidor API:</span>
+            <span class="text-slate-400 font-medium">Servidor API:</span>
           </div>
           <button 
             type="button" 
             @click="showServerConfig = !showServerConfig"
             class="text-[11px] font-medium text-sky-400 hover:text-sky-300 underline underline-offset-2"
           >
-            {{ showServerConfig ? 'Ocultar' : 'Cambiar URL' }}
+            {{ showServerConfig ? 'Ocultar' : 'Cambiar Servidor' }}
           </button>
         </div>
 
-        <div class="font-mono text-[11px] text-slate-300 truncate">
-          {{ currentUrl }}
+        <div class="flex items-center justify-between text-xs bg-slate-900/90 px-3 py-2 rounded-lg border border-slate-800">
+          <span class="text-slate-200 font-medium truncate">{{ selectedServerName }}</span>
+          <span class="font-mono text-[11px] text-sky-400 truncate max-w-[200px]">{{ currentUrl }}</span>
         </div>
 
         <!-- Collapsible Server URL Selector -->
-        <div v-if="showServerConfig" class="pt-2 border-t border-slate-800/80 space-y-2">
-          <input 
-            v-model="currentUrl"
-            type="text" 
-            placeholder="https://api-rpi.liqsysonline.com"
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500"
-          />
-          <div class="flex items-center gap-2">
-            <button 
-              type="button"
-              @click="currentUrl = 'https://api-rpi.liqsysonline.com'"
-              class="px-2 py-1 rounded bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 border border-indigo-500/30 text-[10px] font-medium"
+        <div v-if="showServerConfig" class="pt-2 border-t border-slate-800/80 space-y-2.5">
+          <!-- Dropdown selector of predefined servers -->
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Elegir servidor:</label>
+            <select 
+              :value="currentUrl"
+              @change="onSelectEndpoint($event.target.value)"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-sans"
             >
-              api-rpi (Producción)
-            </button>
+              <option 
+                v-for="ep in availableEndpoints" 
+                :key="ep.url" 
+                :value="ep.url"
+              >
+                {{ ep.name }} ({{ ep.url }})
+              </option>
+              <option v-if="!isPredefinedUrl" :value="currentUrl">
+                Personalizado ({{ currentUrl }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Quick access pill buttons -->
+          <div class="flex flex-wrap gap-1.5">
             <button 
+              v-for="ep in availableEndpoints"
+              :key="ep.url"
               type="button"
-              @click="currentUrl = 'http://localhost:3005'"
-              class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-medium"
+              @click="onSelectEndpoint(ep.url)"
+              class="px-2.5 py-1 rounded text-[10px] font-medium transition border"
+              :class="currentUrl === ep.url 
+                ? 'bg-indigo-600/25 text-indigo-300 border-indigo-500/40 font-semibold' 
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'"
             >
-              localhost:3005
+              {{ ep.name }}
             </button>
+          </div>
+
+          <!-- Manual URL input -->
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">O URL personalizada:</label>
+            <input 
+              v-model="currentUrl"
+              @input="onInputUrl"
+              type="text" 
+              placeholder="https://..."
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
           </div>
         </div>
       </div>
@@ -147,9 +174,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAdminStore } from '../stores/adminStore';
 import { api } from '../services/api';
+import { getApiEndpoints } from '../config/apiEndpoints';
 import { 
   Database, 
   LockKeyhole, 
@@ -162,6 +190,7 @@ import {
 
 const store = useAdminStore();
 
+const availableEndpoints = ref(getApiEndpoints());
 const adminKeyInput = ref('');
 const currentUrl = ref(store.apiUrl || api.getBaseUrl());
 const showServerConfig = ref(false);
@@ -171,14 +200,44 @@ const isChecking = ref(false);
 const apiConnected = ref(false);
 const errorMessage = ref('');
 
+const selectedServerName = computed(() => {
+  const match = availableEndpoints.value.find(e => e.url === currentUrl.value);
+  return match ? match.name : 'Personalizado';
+});
+
+const isPredefinedUrl = computed(() => {
+  return availableEndpoints.value.some(e => e.url === currentUrl.value);
+});
+
+let healthTimeout = null;
+function onInputUrl() {
+  clearTimeout(healthTimeout);
+  healthTimeout = setTimeout(() => {
+    checkApiHealth();
+  }, 400);
+}
+
+function onSelectEndpoint(url) {
+  const normalized = api.normalizeUrl(url);
+  currentUrl.value = normalized;
+  api.setBaseUrl(normalized);
+  store.setApiUrl(normalized);
+  checkApiHealth();
+}
+
 onMounted(async () => {
   checkApiHealth();
 });
 
 async function checkApiHealth() {
+  const urlToCheck = api.normalizeUrl(currentUrl.value);
+  if (!urlToCheck || urlToCheck.length < 8) {
+    apiConnected.value = false;
+    return;
+  }
   isChecking.value = true;
   try {
-    api.setBaseUrl(currentUrl.value);
+    api.setBaseUrl(urlToCheck);
     await api.getStatus();
     apiConnected.value = true;
   } catch (err) {
@@ -193,10 +252,10 @@ async function handleLogin() {
   isLoading.value = true;
 
   try {
-    if (currentUrl.value !== store.apiUrl) {
-      store.setApiUrl(currentUrl.value);
-    }
-    await store.login(adminKeyInput.value);
+    const targetUrl = api.normalizeUrl(currentUrl.value);
+    currentUrl.value = targetUrl;
+    store.setApiUrl(targetUrl);
+    await store.login(adminKeyInput.value, targetUrl);
   } catch (err) {
     errorMessage.value = err.message || 'La clave de administrador no es válida o no se pudo conectar con el servidor.';
   } finally {
@@ -205,9 +264,9 @@ async function handleLogin() {
 }
 
 function handleGuestAccess() {
-  if (currentUrl.value !== store.apiUrl) {
-    store.setApiUrl(currentUrl.value);
-  }
+  const targetUrl = api.normalizeUrl(currentUrl.value);
+  currentUrl.value = targetUrl;
+  store.setApiUrl(targetUrl);
   store.enterAsGuest();
 }
 </script>

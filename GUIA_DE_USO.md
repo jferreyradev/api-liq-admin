@@ -25,7 +25,7 @@ Esta guía detalla el funcionamiento paso a paso de cada módulo de la consola d
 Para proteger las operaciones que alteran datos o esquemas en Oracle, la API utiliza la clave administrativa `X-Admin-Key`.
 
 1. En la barra superior (Navbar), haz clic en el ícono de engranaje **`⚙️ Configuración`**.
-2. **URL Base de la API:** Puedes alternar entre producción (`https://api-rpi.liqsysonline.com`) o desarrollo local (`http://localhost:3005`).
+2. **URL Base de la API:** Puedes alternar entre producción (`https://api-desa.liqsysonline.com`) o desarrollo local (`http://localhost:3005`).
 3. **Clave de Administrador (`X-Admin-Key`):** Ingresa la clave administrativa correspondiente a la API (definida en la variable `ADMIN_ACCESS_KEY` del backend).
 4. Haz clic en **"Guardar Configuración"**.
    > La clave queda almacenada en el `localStorage` de tu navegador de manera persistente.
